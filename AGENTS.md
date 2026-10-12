@@ -2,6 +2,16 @@
 
 이 파일은 저장소 전체에 적용하는 Codex 지침이다.
 
+## Phase 1 구현 경계
+
+- Python 3.11+, src-layout, Pydantic, LangGraph StateGraph를 사용한다.
+- GitHub 및 LLM 연동은 Fake 어댑터만 사용하며, 실제 API 호출, GitHub Push 및 PR 생성은 금지한다. 이 Phase에서는 아래의 일반 푸시 허용 규칙보다 이 제한이 우선한다.
+- 외부 저장소 코드는 호스트에서 실행하지 않는다. FakeTestRunner는 미리 정한 결과만 반환하며, 이를 실제 pytest 실행 결과로 표현하지 않는다.
+- LLM은 진단과 수정 제안만 담당한다. 파일 정책, 최대 3회 재시도, 검증과 종료 판단은 결정론적인 코드로 수행한다.
+- 수정 적용은 메모리상의 기존 파일에만 수행한다. `tests/`, `.github/`, `.git/` 경로와 경로 순회는 차단한다.
+- API Key와 인증 정보를 하드코딩하거나 커밋하지 않는다.
+- 변경 후 `pip install -e ".[dev]"`, `pytest -q`, `python -m patchpilot demo`를 확인하고 실제 개발 테스트와 Mock 결과를 구분해 보고한다.
+
 ## 작업 진행
 
 - 작업 전에 기존 구현, 의존성, 관련 지침과 Git 상태를 확인한다.
