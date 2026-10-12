@@ -122,7 +122,7 @@ def apply_changes(files: dict[str, str], patch: Patch) -> dict[str, str]:
         if change.path in seen:
             raise ValueError(f"Duplicate patch path: {change.path!r}")
         seen.add(change.path)
-        if change.path not in files or files[change.path] != change.before:
+        if change.path not in files or files[change.path] == change.before:
             raise ValueError(f"Patch does not match existing content: {change.path!r}")
         if change.before == change.after:
             raise ValueError(f"Patch has no change: {change.path!r}")
