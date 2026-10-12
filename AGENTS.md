@@ -9,6 +9,7 @@
 - 외부 저장소 코드는 호스트에서 실행하지 않는다. Docker 데몬·immutable 이미지·리소스·권한·마운트·네트워크 안전 검증이 실패하면 실행을 거부한다.
 - FakeTestRunner는 미리 정한 결과만 반환하며, 이를 실제 pytest 실행이나 LOCAL_VERIFIED/CI_VERIFIED로 집계하지 않는다.
 - LLM은 진단과 수정 제안만 담당한다. 파일 정책, 최대 3회 재시도, 검증과 종료 판단은 결정론적인 코드로 수행한다.
+- 오류 분류·진단·수정 제안은 OpenAI 모델을 사용한다. 테스트용 기본 프로필은 `gpt-6-luna`와 추론 `none`이며, 모델 변경은 환경변수로 관리하고 추론/Temperature 호환성을 검증한다.
 - 대상 소스는 실패 Run의 정확한 head_sha와 Git blob을 검증한 스냅샷으로 확보한다. 호스트에 외부 코드를 실행하거나 symlink를 추출하지 않는다.
 - 수정은 메모리에서 원자적으로 적용하고, 임시 Docker 볼륨은 읽기 전용으로 테스트에 전달한다. 테스트·CI·Git·pytest 설정 변경, 경로 순회, 검증 우회, 기본 3개 파일/100줄 초과를 차단한다.
 - 대상 저장소의 브랜치 쓰기와 Draft PR 생성은 검증 결과·Diff를 확인한 실행별 사용자 승인 이후에만 허용한다. CLI approve/reject와 LangGraph interrupt/Command 기반 재개를 사용한다. 자동 Merge는 금지한다.

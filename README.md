@@ -37,6 +37,13 @@ set +a
 
 필수: `GITHUB_TOKEN`, `OPENAI_API_KEY`, `PATCHPILOT_OPENAI_MODEL`, `PATCHPILOT_ALLOWED_REPOS`, `PATCHPILOT_SANDBOX_IMAGE`.
 모델은 본인의 계정에서 사용 가능한 Structured Output 지원 모델로 설정한다. Temperature/Timeout도 환경변수로 관리한다.
+현재 `.env.example`은 테스트용 OpenAI 프로필 `gpt-6-luna`, `PATCHPILOT_REASONING_EFFORT=none`을 사용한다.
+오류 분류·원인 진단·Patch 생성은 모두 동일한 OpenAI 모델을 호출한다.
+추론을 높이려면 모델이 지원하는 `low`, `medium`, `high` 등으로 설정한다. 추론이 활성화되면 Temperature는 요청에서 제외한다.
+추론을 지원하지 않는 모델로 변경하면 `PATCHPILOT_REASONING_EFFORT`를 비워둔다.
+이 프로필은 실행 흐름을 저렴하게 확인하기 위한 설정이며 실제 코드 수정 품질은 대상 프로젝트로 평가해야 한다.
+[GPT-6 Luna 모델 안내](https://developers.openai.com/api/docs/models/gpt-6-luna),
+[추론·Temperature 호환성](https://developers.openai.com/api/docs/guides/latest-model)을 참고한다.
 GitHub fine-grained Token은 **허용 대상 저장소만** 선택하고 Actions: read, Contents: read/write,
 Pull requests: read/write를 부여한다. Metadata 읽기는 기본 권한이다. Workflow 쓰기나 관리자 권한은 요구하지 않는다.
 조직의 별도 승인·SSO 정책은 사용자가 설정해야 한다. 토큰은 GitHub API 클라이언트에서만 사용하며

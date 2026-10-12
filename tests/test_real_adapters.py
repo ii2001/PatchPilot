@@ -215,6 +215,44 @@ def test_missing_llm_credentials_is_explicit():
         RealLLMClient(Settings())
 
 
+@pytest.mark.parametrize("effort", [None, "none", "high"])
+def test_openai_constructor_respects_reasoning_temperature_compatibility(monkeypatch, effort):
+    import langchain_openai
+
+    parameters = {}
+    def constructor(**kwargs):
+        parameters.update(kwargs)
+        return object()
+    monkeypatch.setattr(langchain_openai, "ChatOpenAI", constructor)
+    settings = Settings(openai_api_key="synthetic-test-key", openai_model="gpt-6-luna", reasoning_effort=effort)
+    RealLLMClient(settings)
+    assert parameters["model"] == "gpt-6-luna" and parameters["max_retries"] == 0
+    assert ("temperature" in parameters) == (effort in {None, "none"})
+    assert parameters.get("reasoning_effort") == effort
+
+
+def test_reasoning_effort_is_loaded_and_validated(monkeypatch):
+    from pydantic import ValidationError
+
+    monkeypatch.setenv("PATCHPILOT_REASONING_EFFORT", "none")
+    assert Settings.from_env().reasoning_effort == "none"
+    monkeypatch.setenv("PATCHPILOT_REASONING_EFFORT", "")
+    assert Settings.from_env().reasoning_effort is None
+    monkeypatch.setenv("PATCHPILOT_REASONING_EFFORT", "invalid")
+    with pytest.raises(ValidationError):
+        Settings.from_env()
+
+
+def test_reasoning_effort_changes_do_not_reuse_incompatible_cache(tmp_path):
+    state = run_scenario("success")
+    model = StructuredModel()
+    store = JobStore(tmp_path)
+    for effort in ("none", "high"):
+        client = RealLLMClient(Settings(openai_model="gpt-6-luna", reasoning_effort=effort), model=model, cache=store)
+        assert client.diagnose(state).cause
+    assert len(model.payloads) == 2
+
+
 def test_signed_log_redirect_never_follows_untrusted_host():
     with httpx.Client(base_url="https://api.github.com", transport=httpx.MockTransport(
         lambda request: httpx.Response(302, headers={"location": "https://attacker.example/log"})
