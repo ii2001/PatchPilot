@@ -54,7 +54,9 @@ GitHub Git tree/blob으로 정확한 SHA의 스냅샷을 읽는다. tar는 신�
 신뢰하는 harness가 고정 pytest config/plugin과 제한된 환경으로 대상·전체 pytest subprocess를 실행한다.
 fixture나 외부 저장소의 Python은 호스트에서 import/실행하지 않는다.
 
-Patch는 정확한 `before`/`after` 모델을 사용한다. 경로/AST/수정량 검사 완료 후 메모리에서 원자적으로 적용한다.
+실제 LLM은 파일마다 유일하게 일치하는 정확한 `before` 부분 문자열과 `after` 교체 문자열을 제안한다.
+어댑터는 빈 문자열·누락·중복/모호한 일치·보호 경로를 거부하고, 원본 전체를 보존한 full-file Patch로 변환한다.
+기존 실행 계층의 정확한 전체 `before`/`after`, 경로/AST/수정량 검사는 그대로 수행해 원자적으로 적용한다.
 재시도 시 이전 패치는 유지하고 최신 결과와 모든 변경을 LLM에 전달한다.
 최종 검증은 원본에서 Patch 이력을 재적용한 결과, 누적 제한, 원본/최종 digest,
 실제 targeted/full 결과, 수집 테스트의 유지 및 신규 skip 금지를 독립적으로 확인한다.
@@ -63,6 +65,7 @@ Patch는 정확한 `before`/`after` 모델을 사용한다. 경로/AST/수정량
 
 Job은 repository/Run/attempt 단위로 unique이며 thread_id는 job_id다. Delivery ID와 body hash도 별도 저장한다.
 SQLite와 per-job 파일 락으로 여러 worker/CLI의 중복 실행을 막는다. Crash 후 RUNNING 작업은 저장된 그래프에서 재개한다.
+체크포인트 역직렬화는 명시적으로 허용한 PatchPilot 상태 모델 타입으로 제한한다.
 승인은 새 프로세스의 `Command(resume=True/False)`로 재개하며 테스트/LLM을 반복하지 않는다.
 
 LLM 성공 응답은 모델/Temperature/Schema/Prompt/상태 해시로 캐시한다. 정상 재개는 캐시를 재사용하며

@@ -44,3 +44,31 @@ Draft PR의 base가 `test/` 브랜치인지 확인하고 실제 GitHub CI 결과
 Token에는 이 저장소의 Actions 읽기, Contents 쓰기, Pull requests 쓰기 권한이 필요하다.
 개발자가 CI 설정을 처음 추가할 때는 별도 Workflows 쓰기 권한이 필요할 수 있다.
 Agent는 수리 Patch에서 CI 설정을 수정하지 않는다.
+
+## 2026-10-12 실제 검증 기록
+
+- 정상 main의 실제 GitHub CI 및 전용 Docker 회귀 테스트 통과를 먼저 확인했다.
+- 실패 실습 브랜치: `test/self-repair-policy-20261012`.
+- 실패 Commit: `b64e8c7dbd1922e526c1aefd5c208e395880b269`.
+- 실제 실패 Run: [38213983578](https://github.com/ii2001/PatchPilot/actions/runs/38213983578).
+- 의도적으로 변경한 `policy.py`의 비교 연산자 한 줄을 기존 테스트가 감지했다.
+  Docker 대상 4 failed, 전체 22 failed / 104 passed / 13 skipped를 확인했다.
+- 첫 Agent 실행은 모델의 부분 문자열 제안을 전체 파일 Patch로 취급하여 원본 불일치로 거부됐다.
+  파일과 PR은 변경하지 않았다.
+- 실행 어댑터가 유일하게 일치하는 부분 문자열을 원본 전체에 안전하게 적용하도록 보완하고,
+  원래의 원본 비교·경로·AST·수정량·실제 테스트 검증은 유지했다.
+- 동일 Run attempt 2에서 실제 OpenAI `gpt-6-luna`가 원인 분류·진단·수정에 성공했다.
+- 수정 파일 1개, 시도 1회, LLM 호출 3회. 입력 286385 tokens, 출력 481 tokens.
+- 실제 Docker 대상 29 passed, 전체 126 passed / 13 skipped. 테스트 파일과 CI 설정은 수정하지 않았다.
+- Job ID: `63c05a5518da58958285dbdaa340f106`. 검증 후 AWAITING_APPROVAL까지 체크포인트로 저장했다.
+
+```diff
+-        if change.path not in files or files[change.path] == change.before:
++        if change.path not in files or files[change.path] != change.before:
+```
+
+이 기록의 성공은 실제 API 및 Docker 실행 결과다. Mock 데모 결과와 구분한다.
+
+사용자 승인 후 발행 시 `POST /git/trees`에서 HTTP 403과 `contents=write` 요구가 반환됐다.
+이 때 상태는 PUBLISH_FAILED이며 로컬 검증과 승인 체크포인트는 유지된다.
+토큰의 선택 저장소와 Contents 쓰기 권한을 설정한 뒤 동일 Job의 approve로 발행만 재시도할 수 있다.

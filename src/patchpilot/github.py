@@ -41,7 +41,11 @@ class RealGitHubClient:
         except httpx.HTTPError as exc:
             raise GitHubError(f"GitHub request failed ({type(exc).__name__})") from None
         if response.status_code not in expected:
-            raise GitHubError(f"GitHub {method} request returned HTTP {response.status_code}")
+            message = f"GitHub {method} {path} returned HTTP {response.status_code}"
+            permissions = response.headers.get("x-accepted-github-permissions")
+            if permissions:
+                message += f" (requires {permissions})"
+            raise GitHubError(message)
         if len(response.content) > 4_000_000:
             raise GitHubError("GitHub response exceeds the supported size")
         return response
