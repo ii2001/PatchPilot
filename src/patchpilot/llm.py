@@ -33,15 +33,21 @@ class RealLLMClient:
                 raise ValueError("OPENAI_API_KEY and PATCHPILOT_OPENAI_MODEL are required")
             from langchain_openai import ChatOpenAI
 
+            options = {"timeout": settings.llm_timeout, "max_retries": 0}
+            if settings.reasoning_effort is not None:
+                options["reasoning_effort"] = settings.reasoning_effort
+            if settings.reasoning_effort in {None, "none"}:
+                options["temperature"] = settings.temperature
             model = ChatOpenAI(
                 model=settings.openai_model, api_key=settings.openai_api_key.get_secret_value(),
-                temperature=settings.temperature, timeout=settings.llm_timeout, max_retries=0,
+                **options,
             )
         self.model = model
         self.model_name = settings.openai_model
         self.calls: list[LLMCall] = []
         self.cache = cache
         self.temperature = settings.temperature
+        self.reasoning_effort = settings.reasoning_effort
 
     def _call(self, operation: str, schema: type[BaseModel], state: RepairState):
         started = time.perf_counter()
@@ -59,7 +65,7 @@ class RealLLMClient:
         encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True)
         if len(encoded.encode()) > 2_000_000:
             raise LLMError("Context exceeds the supported prompt size")
-        cache_key = hashlib.sha256((self.model_name + str(self.temperature) + SYSTEM_PROMPT + json.dumps(schema.model_json_schema(), sort_keys=True) + encoded).encode()).hexdigest()
+        cache_key = hashlib.sha256((self.model_name + str(self.temperature) + str(self.reasoning_effort) + SYSTEM_PROMPT + json.dumps(schema.model_json_schema(), sort_keys=True) + encoded).encode()).hexdigest()
         cached = self.cache.get_llm(cache_key) if self.cache else None
         if cached:
             self.calls.append(LLMCall.model_validate({**cached["call"], "cached": True, "duration_seconds": 0}))

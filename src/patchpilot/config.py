@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr
 
@@ -11,6 +12,7 @@ class Settings(BaseModel):
     openai_api_key: SecretStr = SecretStr("")
     openai_model: str = ""
     temperature: float = Field(default=0, ge=0, le=2)
+    reasoning_effort: Literal["none", "low", "medium", "high", "xhigh", "max"] | None = None
     llm_timeout: float = Field(default=60, gt=0, le=300)
     github_token: SecretStr = SecretStr("")
     webhook_secret: SecretStr = SecretStr("")
@@ -30,6 +32,7 @@ class Settings(BaseModel):
             openai_api_key=SecretStr(os.getenv("OPENAI_API_KEY", "")),
             openai_model=os.getenv("PATCHPILOT_OPENAI_MODEL", ""),
             temperature=os.getenv("PATCHPILOT_TEMPERATURE", "0"),
+            reasoning_effort=os.getenv("PATCHPILOT_REASONING_EFFORT", "").strip() or None,
             llm_timeout=os.getenv("PATCHPILOT_LLM_TIMEOUT", "60"),
             github_token=SecretStr(os.getenv("GITHUB_TOKEN", "")),
             webhook_secret=SecretStr(os.getenv("PATCHPILOT_WEBHOOK_SECRET", "")),
