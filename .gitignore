@@ -19,3 +19,4 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+.patchpilot/

@@ -4,14 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "patchpilot"
-version = "0.1.0"
-description = "A mock-first LangGraph CI repair agent"
+version = "0.2.0"
+description = "An approval-gated LangGraph CI repair agent"
 readme = "README.md"
 requires-python = ">=3.11"
-dependencies = ["langgraph>=1.0,<2", "pydantic>=2.7,<3"]
+dependencies = [
+    "langgraph>=1.0,<2", "pydantic>=2.7,<3", "httpx>=0.28,<1",
+    "langchain-openai>=1,<2", "langgraph-checkpoint-sqlite>=3,<4",
+]
+
+[project.scripts]
+patchpilot = "patchpilot.__main__:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=8,<10"]
+dev = ["pytest>=8,<10", "build>=1,<2", "fastapi>=0.115,<1"]
+webhook = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -19,3 +26,7 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers"
+markers = [
+    "docker: requires an explicitly configured Docker sandbox image",
+    "live: requires explicit opt-in and external credentials",
+]

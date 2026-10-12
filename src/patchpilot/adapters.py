@@ -2,7 +2,7 @@
 
 from typing import Literal, Protocol
 
-from .state import Diagnosis, FailureInfo, FileChange, Patch, RepairState, TestResult
+from .state import Diagnosis, FailureClassification, FailureInfo, FileChange, Patch, RepairState, TestResult
 
 SOURCE_PATH = "src/calculator.py"
 BROKEN_SOURCE = "def add(a, b):\n    return a - b\n"
@@ -14,6 +14,8 @@ class GitHubClient(Protocol):
 
 
 class LLMClient(Protocol):
+    def classify_failure(self, state: RepairState) -> FailureClassification: ...
+
     def diagnose(self, state: RepairState) -> Diagnosis: ...
 
     def generate_patch(self, state: RepairState) -> Patch: ...
@@ -37,6 +39,9 @@ class FakeGitHubClient:
 class FakeLLMClient:
     def __init__(self, correct_on_attempt: int | None = 1):
         self.correct_on_attempt = correct_on_attempt
+
+    def classify_failure(self, state: RepairState) -> FailureClassification:
+        return FailureClassification(category="code", reason="[FAKE LLM] scripted code failure")
 
     def diagnose(self, state: RepairState) -> Diagnosis:
         evidence = state.test_results[-1].output if state.test_results else state.failure.log
