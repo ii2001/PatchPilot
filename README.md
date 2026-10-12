@@ -167,3 +167,6 @@ Docker/API 테스트는 명시적 opt-in이 없으면 안전하게 Skip한다.
 실제 API smoke는 GitHub 읽기와 LLM 호출만 수행하며 승인 없는 PR 발행을 하지 않는다.
 [실습 시나리오](examples/failing_pytest_demo/README.md), [검증 기록](docs/validation.md),
 [아키텍처](docs/architecture.md), [개발 지침](AGENTS.md)을 참고한다.
+
+다른 저장소를 만들지 않고 검증하려면 [동일 저장소 실제 수리 가이드](docs/self-repair.md)를 사용한다.
+정상 `main`과 분리된 테스트 브랜치에서 실패를 만들고, 자체 의존성을 설치한 전용 sandbox로 재현한다.
