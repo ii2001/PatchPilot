@@ -1,0 +1,19 @@
+# Trusted image for PatchPilot's own tests; target-repository requirements are never installed at runtime.
+FROM python:3.11-slim
+LABEL patchpilot.sandbox.version="1"
+RUN pip install --no-cache-dir \
+    pytest==9.1.1 \
+    langgraph==1.2.14 \
+    pydantic==2.14.1 \
+    httpx==0.28.1 \
+    langchain-openai==1.7.0 \
+    langgraph-checkpoint-sqlite==3.1.1 \
+    fastapi==0.143.0 \
+    build==1.6.1 \
+    && mkdir -p /workspace /opt/patchpilot
+COPY runner.py /opt/patchpilot/runner.py
+COPY pytest.patchpilot.ini /opt/patchpilot/pytest.ini
+RUN chmod -R a-w /opt/patchpilot && chmod 755 /workspace
+ENV PYTHONDONTWRITEBYTECODE=1 PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
+USER 65532:65532
+WORKDIR /workspace
