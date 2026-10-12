@@ -253,6 +253,37 @@ def test_reasoning_effort_changes_do_not_reuse_incompatible_cache(tmp_path):
     assert len(model.payloads) == 2
 
 
+def test_llm_snippet_patch_preserves_full_source_and_policy(monkeypatch):
+    from patchpilot.policy import apply_changes
+    from patchpilot.state import FileChange, Patch
+
+    state = run_scenario("success")
+    source = "# keep this header\ndef add(a, b):\n    return a - b\n\nKEEP = True\n"
+    state = state.model_copy(update={"files": {"app.py": source}})
+    client = RealLLMClient(Settings(), model=StructuredModel())
+    proposal = Patch(changes=[FileChange(path="app.py", before="return a - b", after="return a + b")])
+    monkeypatch.setattr(client, "_call", lambda *args: proposal)
+    patch = client.generate_patch(state)
+    assert patch.changes[0].before == source
+    assert apply_changes(state.files, patch)["app.py"] == source.replace("return a - b", "return a + b")
+    assert state.files["app.py"] == source
+
+
+@pytest.mark.parametrize("case", ["missing", "empty", "ambiguous", "unknown", "protected", "duplicate"])
+def test_llm_snippet_patch_rejects_invalid_edits(monkeypatch, case):
+    from patchpilot.state import FileChange, Patch
+
+    state = run_scenario("success").model_copy(update={"files": {"app.py": "value = 1\nvalue = 1\n"}})
+    path = "missing.py" if case == "unknown" else "tests/test_app.py" if case == "protected" else "app.py"
+    before = "" if case == "empty" else "missing text" if case == "missing" else "value = 1" if case == "ambiguous" else state.files["app.py"]
+    change = FileChange(path=path, before=before, after="value = 2\n")
+    proposal = Patch(changes=[change, change] if case == "duplicate" else [change])
+    client = RealLLMClient(Settings(), model=StructuredModel())
+    monkeypatch.setattr(client, "_call", lambda *args: proposal)
+    with pytest.raises((LLMError, ValueError)):
+        client.generate_patch(state)
+
+
 def test_signed_log_redirect_never_follows_untrusted_host():
     with httpx.Client(base_url="https://api.github.com", transport=httpx.MockTransport(
         lambda request: httpx.Response(302, headers={"location": "https://attacker.example/log"})
@@ -260,6 +291,18 @@ def test_signed_log_redirect_never_follows_untrusted_host():
         github = RealGitHubClient(Settings(), client=client)
         with pytest.raises(GitHubError, match="download host"):
             github._job_log("owner/repo", 1)
+
+
+def test_github_write_error_identifies_endpoint_and_required_permission():
+    with httpx.Client(base_url="https://api.github.com", transport=httpx.MockTransport(
+        lambda request: httpx.Response(403, json={"message": "secret body must not be recorded"},
+                                       headers={"x-accepted-github-permissions": "contents=write"})
+    )) as client:
+        github = RealGitHubClient(Settings(), client=client)
+        with pytest.raises(GitHubError) as error:
+            github._json("POST", "/repos/owner/repo/git/trees", expected=(201,), json={})
+        assert "/git/trees" in str(error.value) and "contents=write" in str(error.value)
+        assert "secret body" not in str(error.value)
 
 
 @pytest.mark.parametrize("mode,kind", [("120000", "blob"), ("160000", "commit")])

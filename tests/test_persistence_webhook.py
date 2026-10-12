@@ -13,7 +13,8 @@ from patchpilot.webhook import create_app
 from test_real_adapters import verified_state
 
 
-def test_approval_survives_restart_and_publishes_once(tmp_path):
+def test_approval_survives_restart_and_publishes_once(tmp_path, monkeypatch):
+    monkeypatch.setenv("LANGGRAPH_STRICT_MSGPACK", "true")
     evidence = verified_state()
     published = []
     class GitHub(FakeGitHubClient):

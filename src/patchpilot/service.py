@@ -4,6 +4,7 @@ import os
 import time
 
 from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.types import Command
 
 from .config import Settings
@@ -62,6 +63,12 @@ class RepairService:
                 os.close(descriptor)
                 config = {"configurable": {"thread_id": job_id}, "recursion_limit": 50}
                 with SqliteSaver.from_conn_string(str(checkpoint_path)) as saver:
+                    saver.serde = JsonPlusSerializer(allowed_msgpack_modules=[
+                        ("patchpilot.state", name) for name in (
+                            "FailureInfo", "TestExecution", "TestResult", "FailureClassification",
+                            "Diagnosis", "FileChange", "Patch", "AppliedPatch", "RepairState", "LLMCall",
+                        )
+                    ])
                     graph = build_graph(github, llm, runner, checkpointer=saver, publisher=github)
                     snapshot = graph.get_state(config)
                     if publication_retry:
